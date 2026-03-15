@@ -169,6 +169,69 @@ def blink_rate_adjustment(blink_rate_per_min: float | None) -> float:
     return round(-5.0 * ((rate - 25.0) / 15.0), 1)
 
 
+def score_fixation_combined(
+    brightness: float,
+    contrast: float,
+    head_stability_score: float,
+    blink_rate: float | None = None,
+) -> ScoreResult:
+    """Bewertet den Fixationstest mit Stabilität und Blinkmuster (v0.3 Multi-Frame).
+
+    Kombiniert drei Komponenten zu einem Gesamtscore:
+        - Bildqualität:    50 % (Helligkeit + Kontrast)
+        - Kopfstabilität:  30 % (Nasenspitzen-Tracking über Frames)
+        - Blinkmuster:     20 % (normale Blinkrate = voller Beitrag)
+
+    Blink-Einfluss: blink_rate_adjustment() liefert einen Faktor in [-5.0, 0.0].
+    Skalierung auf Blink-Score: blink_score = 100 + adj × 4 → Bereich [80, 100].
+    Damit reduziert eine abnormale Blinkrate den Gesamtscore maximal um ~4 Punkte
+    (Stressindikator, „leicht reduzieren").
+
+    HINWEIS: Heuristische Analyse, nicht klinisch validiert.
+    Nur belastbar mit Multi-Frame-Daten (is_reliable=True aus
+    summarize_eye_metrics und summarize_head_stability).
+
+    Args:
+        brightness:           Mittlere Helligkeit des mittleren Frames (0–255).
+        contrast:             Standardabweichung der Pixelwerte.
+        head_stability_score: Kopfstabilitätsscore (0–100).
+        blink_rate:           Blinkrate in Blinks/Minute oder None (kein Einfluss).
+
+    Returns:
+        ScoreResult mit score (0–100), label und details.
+    """
+    # Bildqualitäts-Score (50 %)
+    image_result = score_fixation_test(brightness=brightness, contrast=contrast)
+    image_score = image_result["score"]
+
+    # Stabilitäts-Score (30 %, geclippt auf [0, 100])
+    stability = max(0.0, min(100.0, float(head_stability_score)))
+
+    # Blink-Score (20 %): adj ∈ [-5.0, 0.0] → blink_score ∈ [80.0, 100.0]
+    blink_adj = blink_rate_adjustment(blink_rate)
+    blink_score = max(0.0, min(100.0, 100.0 + blink_adj * 4.0))
+
+    # Gewichtete Kombination: 50% Bild + 30% Stabilität + 20% Blinkmuster
+    combined = round(
+        image_score * 0.50 + stability * 0.30 + blink_score * 0.20,
+        1,
+    )
+    combined = max(0.0, min(100.0, combined))
+
+    return ScoreResult(
+        score=combined,
+        label=_label_for_score(combined),
+        details={
+            **image_result["details"],
+            "head_stability_score": round(stability, 1),
+            "blink_rate_pro_min": round(blink_rate, 1) if blink_rate is not None else None,
+            "blink_score": round(blink_score, 1),
+            "blink_anpassung": round(blink_adj, 1),
+            "gewichtung": "50% Bildqualität + 30% Stabilität + 20% Blinkmuster",
+        },
+    )
+
+
 def score_reading_test(
     anstrengung: int,
     unschaerfe: int,
