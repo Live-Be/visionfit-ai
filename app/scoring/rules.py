@@ -126,6 +126,49 @@ def score_fixation_with_stability(
     )
 
 
+def blink_rate_adjustment(blink_rate_per_min: float | None) -> float:
+    """Berechnet einen Anpassungsfaktor für den Fixationsscore basierend auf Blinkrate.
+
+    Vorbereitung für v0.3 (Multi-Frame): Gibt einen Faktor zurück mit dem der
+    Fixationsscore optional korrigiert werden kann. Ohne Blinkrate (None) → 0.0
+    (kein Einfluss). Bei normaler Blinkrate → 0.0. Bei Extremwerten → leichte
+    negative Korrektur.
+
+    HINWEIS: Nur belastbar mit Multi-Frame-Daten (is_reliable=True aus
+    summarize_eye_metrics). Bei Einzelbild-Ergebnissen nicht verwenden.
+
+    Heuristik (nicht klinisch validiert):
+    - Normale Blinkrate: 10–25/min → Anpassung: 0.0
+    - Sehr niedrig (< 5/min) oder sehr hoch (> 40/min) → Anpassung: -5.0
+    - Dazwischen: lineare Interpolation
+
+    Args:
+        blink_rate_per_min:  Blinkrate in Blinks/Minute oder None.
+
+    Returns:
+        Score-Anpassung als float (typisch 0.0 bis -5.0).
+    """
+    if blink_rate_per_min is None:
+        return 0.0
+
+    rate = float(blink_rate_per_min)
+
+    # Normalbereich: kein Einfluss
+    if 10.0 <= rate <= 25.0:
+        return 0.0
+
+    # Sehr niedriger oder sehr hoher Bereich: leichte Penalty
+    if rate < 5.0 or rate > 40.0:
+        return -5.0
+
+    # Übergangsbereich: sanfte lineare Interpolation
+    if rate < 10.0:
+        return round(-5.0 * (1.0 - (rate - 5.0) / 5.0), 1)
+
+    # rate > 25.0 und <= 40.0
+    return round(-5.0 * ((rate - 25.0) / 15.0), 1)
+
+
 def score_reading_test(
     anstrengung: int,
     unschaerfe: int,

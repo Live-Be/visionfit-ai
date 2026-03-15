@@ -32,11 +32,14 @@
   - Stabilitäts-Score (0–100) + deutsche Labels
   - `score_fixation_with_stability()` in scoring/rules.py (70/30-Gewichtung)
   - Vorbereitet für Multi-Frame-Video (v0.3)
-- [ ] Blink Detection
-  - Eye Aspect Ratio (EAR) berechnen
-  - Blinkhäufigkeit und -dauer messen
-  - Anomale Blinkraten als Stresssignal werten
+- [x] Blink Detection (`app/cv/eye_metrics.py`)
+  - EAR (Eye Aspect Ratio) nach Soukupova & Cech
+  - `eye_aspect_ratio()`, `detect_blink()`, `blink_rate()`, `label_blink_rate()`
+  - `summarize_eye_metrics()` für Multi-Frame-Sequenzen
+  - `blink_rate_adjustment()` als optionaler Score-Faktor (scoring/rules.py)
+  - `is_reliable=False` bei Einzelbild – vollständig vorbereitet für v0.3
 - [ ] Erweiterte Score-Formel mit Echtzeitdaten
+  - Kombination: Bild-Score + Head Stability + Blink Rate
 - [ ] Live-Kamera-Stream statt Einzelfoto
 
 ---

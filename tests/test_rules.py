@@ -196,3 +196,38 @@ class TestScoreFixationWithStability:
     def test_various_stability_scores_in_range(self, stab):
         result = score_fixation_with_stability(100.0, 30.0, head_stability_score=stab)
         assert 0 <= result["score"] <= 100
+
+
+# ──────────────────────────────────────────────
+# v0.2 Phase 3: blink_rate_adjustment
+# ──────────────────────────────────────────────
+
+from app.scoring.rules import blink_rate_adjustment
+
+
+class TestBlinkRateAdjustment:
+
+    def test_none_returns_zero(self):
+        assert blink_rate_adjustment(None) == 0.0
+
+    def test_normal_range_no_adjustment(self):
+        for rate in [10.0, 15.0, 20.0, 25.0]:
+            assert blink_rate_adjustment(rate) == 0.0
+
+    def test_very_low_rate_penalty(self):
+        assert blink_rate_adjustment(2.0) == -5.0
+
+    def test_very_high_rate_penalty(self):
+        assert blink_rate_adjustment(50.0) == -5.0
+
+    def test_adjustment_non_positive(self):
+        for rate in [0.0, 2.0, 7.0, 15.0, 30.0, 50.0]:
+            assert blink_rate_adjustment(rate) <= 0.0
+
+    def test_returns_float(self):
+        assert isinstance(blink_rate_adjustment(15.0), float)
+
+    @pytest.mark.parametrize("rate", [0.0, 5.0, 10.0, 17.5, 25.0, 40.0, 60.0])
+    def test_adjustment_bounded(self, rate):
+        adj = blink_rate_adjustment(rate)
+        assert -5.0 <= adj <= 0.0
