@@ -1,7 +1,12 @@
 """pytest-Tests für das Scoring-Regelwerk."""
 
 import pytest
-from app.scoring.rules import score_fixation_test, score_reading_test
+from app.scoring.rules import (
+    score_fixation_test,
+    score_fixation_no_face,
+    score_reading_test,
+    LABEL_INVALID,
+)
 
 
 # ──────────────────────────────────────────────
@@ -119,3 +124,32 @@ class TestLabels:
                 assert result["label"] in german_labels, (
                     f"Unbekanntes Label: {result['label']}"
                 )
+
+
+# ──────────────────────────────────────────────
+# v0.2: Kein-Gesicht-Tests
+# ──────────────────────────────────────────────
+
+class TestScoreFixationNoFace:
+
+    def test_score_is_zero(self):
+        result = score_fixation_no_face()
+        assert result["score"] == 0.0
+
+    def test_label_is_invalid(self):
+        result = score_fixation_no_face()
+        assert result["label"] == LABEL_INVALID
+
+    def test_details_contain_grund(self):
+        result = score_fixation_no_face()
+        assert "grund" in result["details"]
+
+    def test_result_has_required_keys(self):
+        result = score_fixation_no_face()
+        assert "score" in result
+        assert "label" in result
+        assert "details" in result
+
+    def test_score_is_within_range(self):
+        result = score_fixation_no_face()
+        assert 0 <= result["score"] <= 100
