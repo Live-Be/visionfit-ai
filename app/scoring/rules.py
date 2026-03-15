@@ -3,11 +3,27 @@
 from __future__ import annotations
 from typing import TypedDict
 
+# Spezielles Label für ungültige Tests (z.B. kein Gesicht erkannt)
+LABEL_INVALID = "Test ungültig – kein Gesicht erkannt"
+
 
 class ScoreResult(TypedDict):
     score: float
     label: str
     details: dict
+
+
+def score_fixation_no_face() -> ScoreResult:
+    """Gibt ein Ungültig-Ergebnis zurück wenn kein Gesicht erkannt wurde.
+
+    Returns:
+        ScoreResult mit score=0 und entsprechendem Label.
+    """
+    return ScoreResult(
+        score=0.0,
+        label=LABEL_INVALID,
+        details={"grund": "Kein Gesicht im Bild erkannt."},
+    )
 
 
 def _label_for_score(score: float) -> str:
