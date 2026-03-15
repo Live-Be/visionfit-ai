@@ -3,11 +3,27 @@
 from __future__ import annotations
 from typing import TypedDict
 
+# Spezielles Label für ungültige Tests (z.B. kein Gesicht erkannt)
+LABEL_INVALID = "Test ungültig – kein Gesicht erkannt"
+
 
 class ScoreResult(TypedDict):
     score: float
     label: str
     details: dict
+
+
+def score_fixation_no_face() -> ScoreResult:
+    """Gibt ein Ungültig-Ergebnis zurück wenn kein Gesicht erkannt wurde.
+
+    Returns:
+        ScoreResult mit score=0 und entsprechendem Label.
+    """
+    return ScoreResult(
+        score=0.0,
+        label=LABEL_INVALID,
+        details={"grund": "Kein Gesicht im Bild erkannt."},
+    )
 
 
 def _label_for_score(score: float) -> str:
@@ -63,6 +79,49 @@ def score_fixation_test(
             "kontrast": round(contrast, 1),
             "helligkeitspenalty": round(brightness_penalty, 1),
             "kontrast_score": round(contrast_score, 1),
+        },
+    )
+
+
+def score_fixation_with_stability(
+    brightness: float,
+    contrast: float,
+    head_stability_score: float | None = None,
+) -> ScoreResult:
+    """Bewertet den Fixationstest mit optionalem Kopfstabilitäts-Einfluss.
+
+    Wenn head_stability_score übergeben wird, fließt er mit 30 % Gewicht
+    in den Gesamtscore ein (Bild-Score 70 %, Stabilitäts-Score 30 %).
+    Ohne Stabilitätsscore entspricht das Verhalten score_fixation_test().
+
+    HINWEIS: Setzt voraus, dass head_stability_score aus mindestens 2 Frames
+    berechnet wurde. Bei Einzelbild-Aufnahmen ist dieser Wert rein formal.
+
+    Args:
+        brightness:           Mittlere Helligkeit (0–255).
+        contrast:             Standardabweichung Pixelwerte.
+        head_stability_score: Kopfstabilitätsscore (0–100) oder None.
+
+    Returns:
+        ScoreResult mit score (0–100), label und details.
+    """
+    base = score_fixation_test(brightness=brightness, contrast=contrast)
+
+    if head_stability_score is None:
+        return base
+
+    head_stability_score = max(0.0, min(100.0, float(head_stability_score)))
+
+    # Gewichtete Kombination: 70 % Bild-Score + 30 % Stabilitätsscore
+    combined = round(base["score"] * 0.70 + head_stability_score * 0.30, 1)
+
+    return ScoreResult(
+        score=combined,
+        label=_label_for_score(combined),
+        details={
+            **base["details"],
+            "head_stability_score": round(head_stability_score, 1),
+            "gewichtung": "70% Bild + 30% Stabilität",
         },
     )
 

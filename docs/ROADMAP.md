@@ -22,17 +22,20 @@
 
 **Ziel:** Objektive Gesichts- und Blickverfolgung
 
-- [ ] MediaPipe Face Mesh Integration
-  - 468 Gesichts-Landmarks erkennen
-  - Augenbereich automatisch segmentieren
+- [x] MediaPipe Face Mesh Integration (`app/cv/face_mesh.py`)
+  - 478 Gesichts-Landmarks inkl. Iris erkennen
+  - Gesichtsstatus und annotiertes Bild im Fixationstest
+  - `get_landmark_xy()` als Basis für Phase 2/3
+- [x] Head Stability Analyse (`app/cv/head_stability.py`)
+  - Nasenspitzen-Tracking (Landmark 1) als Referenzpunkt
+  - `std_x`, `std_y`, `combined_motion_std` aus Frame-Sequenz
+  - Stabilitäts-Score (0–100) + deutsche Labels
+  - `score_fixation_with_stability()` in scoring/rules.py (70/30-Gewichtung)
+  - Vorbereitet für Multi-Frame-Video (v0.3)
 - [ ] Blink Detection
   - Eye Aspect Ratio (EAR) berechnen
   - Blinkhäufigkeit und -dauer messen
   - Anomale Blinkraten als Stresssignal werten
-- [ ] Head Stability Analyse
-  - Kopfpositions-Tracking via Landmarks
-  - Bewegungsamplitude über Zeit berechnen
-  - Stabilitäts-Score für Fixationstest
 - [ ] Erweiterte Score-Formel mit Echtzeitdaten
 - [ ] Live-Kamera-Stream statt Einzelfoto
 
