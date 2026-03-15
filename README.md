@@ -10,20 +10,35 @@
 
 ## Projektbeschreibung
 
-VisionFit AI ist ein deutschsprachiger Web-Prototyp, der mit Streamlit umgesetzt wurde.
-Ziel ist es, die visuelle Verträglichkeit verschiedener Brillen durch einfache, kamerabasierte
+VisionFit AI ist ein deutschsprachiger Web-Prototyp auf Basis von Streamlit.
+Ziel ist es, die visuelle Verträglichkeit verschiedener Brillen durch kamerabasierte
 Tests und Selbsteinschätzungen heuristisch zu bewerten.
 
-### Features (v0.1 MVP)
+---
 
-- Browserbasierte App – mobil und Desktop nutzbar
-- Vollständig deutscher UI-Text
-- **Fixationsstabilitäts-Test** – Kameraaufnahme + Bildanalyse (Helligkeit & Kontrast)
-- **Lese-Komfort-Test** – Selbsteinschätzung via Slider
-- Heuristischer Score (0–100) mit deutschem Label
+## Aktueller Stand – v0.3 (Video MVP)
+
+### Fixationsstabilitäts-Test (Video-basiert)
+
+- **3-Sekunden-Videoaufnahme** via Browser-Kamera (`streamlit-webrtc`)
+- **Face Landmark Detection** – 478 Gesichtspunkte via MediaPipe FaceMesh
+- **Head Stability** – Nasenspitzen-Tracking über alle Frames; Score 0–100
+- **Blink Detection** – Eye Aspect Ratio (EAR) nach Soukupova & Cech; Blinkrate/Minute
+- **Kombinierter Score** – 50 % Bildqualität + 30 % Kopfstabilität + 20 % Blinkmuster
+- **Stressindikator** – abnormale Blinkrate reduziert Score leicht (max. ~4 Punkte)
+- **Zuverlässigkeitsprüfung** – `face_detection_rate < 30 %` → ungültiger Test
+
+### Lese-Komfort-Test
+
+- Selbsteinschätzung via Slider (Anstrengung, Unschärfe, Komfort)
+- Heuristischer Score 0–100
+
+### Allgemein
+
+- Vollständig deutsche UI-Texte
 - Session-Speicherung als JSON
-- Modularer Python-Code mit klarer Struktur
-- Vorbereitete Struktur für Computer-Vision-Erweiterungen
+- 271 pytest-Tests grün
+- Streamlit-App läuft lokal im Browser (Desktop + mobil testbar)
 
 ---
 
@@ -31,28 +46,32 @@ Tests und Selbsteinschätzungen heuristisch zu bewerten.
 
 ```
 app/
-├── main.py                 # Streamlit-Einstiegspunkt
-├── ui/
-│   └── components.py       # Wiederverwendbare UI-Komponenten
+├── main.py                    # Streamlit-Einstiegspunkt
 ├── cv/
-│   ├── image_utils.py      # Bildumwandlungen
-│   └── metrics.py          # Bildmetriken
-├── tests/
-│   ├── fixation_test.py    # Fixationstest-Screen
-│   └── reading_test.py     # Lesetest-Screen
+│   ├── face_mesh.py           # MediaPipe Face Landmarks
+│   ├── head_stability.py      # Kopfstabilitäts-Analyse
+│   ├── eye_metrics.py         # EAR-basierte Blink Detection
+│   ├── video_capture.py       # Frame-Utilities (OpenCV)
+│   ├── landmark_pipeline.py   # Landmark-Extraktion aus Frame-Sequenz
+│   ├── video_analysis.py      # Vollständige Analyse-Pipeline
+│   ├── image_utils.py         # Bildumwandlungen
+│   └── metrics.py             # Bildmetriken
 ├── scoring/
-│   └── rules.py            # Scoring-Heuristiken
+│   └── rules.py               # Scoring-Heuristiken
+├── tests/
+│   ├── fixation_test.py       # Fixationstest-Screen (v0.3 Video)
+│   └── reading_test.py        # Lesetest-Screen
+├── ui/
+│   └── components.py          # Wiederverwendbare UI-Komponenten
 ├── storage/
-│   └── session_store.py    # JSON-Speicherung
+│   └── session_store.py       # JSON-Session-Speicherung
 └── utils/
-    ├── config.py            # Konfiguration via .env
-    └── session.py           # Session-ID-Generierung
+    ├── config.py              # Konfiguration via .env
+    └── session.py             # Session-ID-Generierung
 
-data/sessions/              # Gespeicherte Sessions (JSON)
-docs/                       # Dokumentation
-prompts/                    # KI-Prompt-Vorlagen
-tests/
-└── test_rules.py           # pytest-Tests
+tests/                         # pytest-Tests
+docs/ROADMAP.md                # Produktroadmap
+data/sessions/                 # Gespeicherte Sessions (JSON)
 ```
 
 ---
@@ -62,63 +81,80 @@ tests/
 ### Voraussetzungen
 
 - Python 3.10+
-- Git
+- Browser mit Kamerazugriff (Chrome / Firefox empfohlen)
 
 ### Installation
 
 ```bash
-# 1. Repository klonen (falls noch nicht geschehen)
 gh repo clone Live-Be/visionfit-ai
 cd visionfit-ai
 
-# 2. Virtuelle Umgebung erstellen und aktivieren
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 3. Abhängigkeiten installieren
 pip install -r requirements.txt
-
-# 4. Umgebungsvariablen setzen (optional)
-cp .env.example .env
 ```
 
 ### App starten
 
 ```bash
-# Variante A – direkt
-streamlit run app/main.py
-
-# Variante B – via Startskript
-bash run.sh
+cd ~/dev/visionfit-ai
+source .venv/bin/activate
+PYTHONPATH=$PWD streamlit run app/main.py
 ```
 
-Die App öffnet sich automatisch unter: **http://localhost:8501**
+Die App öffnet sich unter: **http://localhost:8501**
+
+> **PYTHONPATH=$PWD** ist erforderlich damit alle `app.*`-Imports korrekt aufgelöst werden.
+
+### Für den Fixationstest (Video) wird benötigt:
+
+```bash
+pip install streamlit-webrtc av
+```
+
+Ohne diese Pakete startet die App, der Fixationstest zeigt jedoch eine
+Installations-Hinweismeldung statt der Kameraaufnahme.
 
 ---
 
 ## Tests ausführen
 
 ```bash
-pytest
+cd ~/dev/visionfit-ai
+source .venv/bin/activate
+PYTHONPATH=$PWD python -m pytest tests/ -v
 ```
 
-Oder mit ausführlicher Ausgabe:
+Aktuell: **271 Tests, alle grün.**
+
+---
+
+## Browser / Mobile
+
+Die App ist im lokalen Netzwerk über die IP des Entwicklungsrechners erreichbar:
 
 ```bash
-pytest -v
+PYTHONPATH=$PWD streamlit run app/main.py --server.address 0.0.0.0
 ```
+
+Dann im Browser (Handy): `http://<DEINE-IP>:8501`
+
+`streamlit-webrtc` benötigt für den Videozugriff auf dem Handy **HTTPS** oder
+`localhost`. Für einen echten mobilen Test empfiehlt sich ein HTTPS-Tunnel
+(z.B. `ngrok http 8501`).
 
 ---
 
 ## Umgebungsvariablen
 
-Kopieren Sie `.env.example` nach `.env` und passen Sie die Werte an:
+Kopieren Sie `.env.example` nach `.env`:
 
-| Variable      | Standard           | Beschreibung                  |
-|---------------|-------------------|-------------------------------|
-| `APP_ENV`     | `development`      | Umgebung (development/prod)   |
-| `APP_NAME`    | `VisionFit AI`     | App-Name                      |
-| `SESSION_DIR` | `data/sessions`    | Speicherort für Session-JSONs |
+| Variable      | Standard         | Beschreibung                  |
+|---------------|-----------------|-------------------------------|
+| `APP_ENV`     | `development`    | Umgebung (development/prod)   |
+| `APP_NAME`    | `VisionFit AI`   | App-Name                      |
+| `SESSION_DIR` | `data/sessions`  | Speicherort für Session-JSONs |
 
 ---
 
