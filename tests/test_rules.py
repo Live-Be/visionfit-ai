@@ -4,6 +4,7 @@ import pytest
 from app.scoring.rules import (
     score_fixation_test,
     score_fixation_no_face,
+    score_fixation_with_stability,
     score_reading_test,
     LABEL_INVALID,
 )
@@ -152,4 +153,46 @@ class TestScoreFixationNoFace:
 
     def test_score_is_within_range(self):
         result = score_fixation_no_face()
+        assert 0 <= result["score"] <= 100
+
+
+# ──────────────────────────────────────────────
+# v0.2 Phase 2: score_fixation_with_stability
+# ──────────────────────────────────────────────
+
+class TestScoreFixationWithStability:
+
+    def test_without_stability_equals_base(self):
+        base = score_fixation_test(brightness=130.0, contrast=40.0)
+        combined = score_fixation_with_stability(brightness=130.0, contrast=40.0)
+        assert combined["score"] == base["score"]
+
+    def test_score_in_range_with_stability(self):
+        result = score_fixation_with_stability(130.0, 40.0, head_stability_score=80.0)
+        assert 0 <= result["score"] <= 100
+
+    def test_stability_influences_score(self):
+        low = score_fixation_with_stability(130.0, 40.0, head_stability_score=0.0)
+        high = score_fixation_with_stability(130.0, 40.0, head_stability_score=100.0)
+        assert high["score"] > low["score"]
+
+    def test_details_contain_stability_key(self):
+        result = score_fixation_with_stability(130.0, 40.0, head_stability_score=70.0)
+        assert "head_stability_score" in result["details"]
+
+    def test_details_contain_gewichtung(self):
+        result = score_fixation_with_stability(130.0, 40.0, head_stability_score=50.0)
+        assert "gewichtung" in result["details"]
+
+    def test_stability_clipped_above_100(self):
+        result = score_fixation_with_stability(130.0, 40.0, head_stability_score=150.0)
+        assert 0 <= result["score"] <= 100
+
+    def test_stability_clipped_below_0(self):
+        result = score_fixation_with_stability(130.0, 40.0, head_stability_score=-10.0)
+        assert 0 <= result["score"] <= 100
+
+    @pytest.mark.parametrize("stab", [0.0, 25.0, 50.0, 75.0, 100.0])
+    def test_various_stability_scores_in_range(self, stab):
+        result = score_fixation_with_stability(100.0, 30.0, head_stability_score=stab)
         assert 0 <= result["score"] <= 100

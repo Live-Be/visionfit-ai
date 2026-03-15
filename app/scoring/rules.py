@@ -83,6 +83,49 @@ def score_fixation_test(
     )
 
 
+def score_fixation_with_stability(
+    brightness: float,
+    contrast: float,
+    head_stability_score: float | None = None,
+) -> ScoreResult:
+    """Bewertet den Fixationstest mit optionalem Kopfstabilitäts-Einfluss.
+
+    Wenn head_stability_score übergeben wird, fließt er mit 30 % Gewicht
+    in den Gesamtscore ein (Bild-Score 70 %, Stabilitäts-Score 30 %).
+    Ohne Stabilitätsscore entspricht das Verhalten score_fixation_test().
+
+    HINWEIS: Setzt voraus, dass head_stability_score aus mindestens 2 Frames
+    berechnet wurde. Bei Einzelbild-Aufnahmen ist dieser Wert rein formal.
+
+    Args:
+        brightness:           Mittlere Helligkeit (0–255).
+        contrast:             Standardabweichung Pixelwerte.
+        head_stability_score: Kopfstabilitätsscore (0–100) oder None.
+
+    Returns:
+        ScoreResult mit score (0–100), label und details.
+    """
+    base = score_fixation_test(brightness=brightness, contrast=contrast)
+
+    if head_stability_score is None:
+        return base
+
+    head_stability_score = max(0.0, min(100.0, float(head_stability_score)))
+
+    # Gewichtete Kombination: 70 % Bild-Score + 30 % Stabilitätsscore
+    combined = round(base["score"] * 0.70 + head_stability_score * 0.30, 1)
+
+    return ScoreResult(
+        score=combined,
+        label=_label_for_score(combined),
+        details={
+            **base["details"],
+            "head_stability_score": round(head_stability_score, 1),
+            "gewichtung": "70% Bild + 30% Stabilität",
+        },
+    )
+
+
 def score_reading_test(
     anstrengung: int,
     unschaerfe: int,

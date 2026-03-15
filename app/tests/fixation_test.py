@@ -1,7 +1,13 @@
-"""Fixationsstabilitäts-Test – kamerabasiert mit MediaPipe Face Landmarks (v0.2)."""
+"""Fixationsstabilitäts-Test – kamerabasiert mit MediaPipe Face Landmarks (v0.2).
+
+v0.2 Phase 2 Vorbereitung:
+    head_stability.summarize_head_stability() ist für die Multi-Frame-Videoanalyse
+    (v0.3) vorbereitet. Im Einzelbild-Modus wird der Stabilitätsscore nicht berechnet.
+    Der Scoring-Aufruf kann bei Bedarf auf score_fixation_with_stability() umgestellt
+    werden sobald Video-Input verfügbar ist.
+"""
 
 import cv2
-import numpy as np
 import streamlit as st
 
 from app.cv.image_utils import uploaded_file_to_bgr, bgr_to_gray
