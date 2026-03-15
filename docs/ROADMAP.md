@@ -38,9 +38,10 @@
   - `summarize_eye_metrics()` für Multi-Frame-Sequenzen
   - `blink_rate_adjustment()` als optionaler Score-Faktor (scoring/rules.py)
   - `is_reliable=False` bei Einzelbild – vollständig vorbereitet für v0.3
-- [ ] Erweiterte Score-Formel mit Echtzeitdaten
+- [x] Erweiterte Score-Formel mit Echtzeitdaten
   - Kombination: Bild-Score + Head Stability + Blink Rate
-- [ ] Live-Kamera-Stream statt Einzelfoto
+  - `score_fixation_combined()` (50/30/20-Gewichtung) in scoring/rules.py
+- [x] Live-Kamera-Stream statt Einzelfoto (streamlit-webrtc, v0.3)
 
 ---
 
@@ -48,11 +49,25 @@
 
 **Ziel:** Zeitbasierte Analyse für präzisere Aussagen
 
-- [ ] Videoaufnahme statt Einzelfoto (5–15 Sekunden)
-- [ ] Frame-by-Frame-Analyse
-  - Pupillenposition über Zeit
-  - Microsaccaden erkennen
-  - Fixationsstabilität als Zeitreihe
+- [x] Videoaufnahme statt Einzelfoto (3 Sekunden, ~90 Frames bei 30 fps)
+  - streamlit-webrtc + FrameBuffer (Ring-Puffer, max. 150 Frames)
+  - State Machine: idle → recording → analyzing → done
+  - 3-Sekunden-Countdown mit Progress Bar + Frame-Counter
+- [x] Frame-by-Frame-Analyse
+  - Landmark-Extraktion für alle Frames (`app/cv/landmark_pipeline.py`)
+  - Video-Modus (static_image_mode=False) für effizientes Tracking
+  - face_detection_rate als Qualitäts- und Zuverlässigkeitsindikator
+  - Fixationsstabilität als Zeitreihe via head_stability
+- [x] Vollständige Analyse-Pipeline (`app/cv/video_analysis.py`)
+  - Bildqualität aus mittlerem Frame (robuster als Frame 0)
+  - Head Stability + Blink Detection orchestriert
+  - is_reliable-Flag bei face_detection_rate < 0.3
+- [x] Kombinierter Score (`score_fixation_combined`)
+  - 50% Bildqualität + 30% Kopfstabilität + 20% Blinkmuster
+  - Blink-Stressindikator: abnormale Rate ≤ 4 Punkte Abzug
+- [x] pytest-Testabdeckung für v0.3 (`tests/test_video_analysis.py`, 60+ Tests)
+- [x] Frame-Utilities (`app/cv/video_capture.py`)
+  - validate_frames, build_frame_sequence, capture_frame_sequence (OpenCV)
 - [ ] Kontrastsensitivität via Grating-Test
   - Animierte Streifenmuster
   - Nutzerantwort (sichtbar / nicht sichtbar)
