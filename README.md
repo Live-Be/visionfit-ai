@@ -16,6 +16,24 @@ Tests und Selbsteinschätzungen heuristisch zu bewerten.
 
 ---
 
+## Aktueller Stand – v0.4 (Optiker-Workflow)
+
+VisionFit unterstützt jetzt einen vollständigen optikerorientierten Workflow mit Anamnese,
+Versorgungskontext, VSI-Test und heuristischem Design-Ranking.
+
+### Neue Funktionen (v0.4)
+
+- **Anamnese & Sehanforderung** – Kundencode, Alter, Hauptanwendung, Anlass, Beschwerden
+- **Versorgungskontext** – strukturierte Eingabe für alte und neue Refraktion, Glastyp und Design
+- **Differenzanalyse** – automatischer Vergleich alt → neu (Sphäre, Zylinder, Achse, Add)
+- **Binokularbefunde** – Phorie-Screening, Visus R/L/binokular
+- **Tab-Navigation** – 6-Tab-Workflow für den Optik-Alltag
+- **Herstellerunabhängiges Design-Ranking** – regelbasierte, heuristische Versorgungsempfehlungen
+  (ausschließlich Design-/Versorgungskategorien, keine Markennamen, kein medizinischer Anspruch)
+- **Erweitertes Session-JSON** – alle Workflow-Daten werden beim Speichern mitgesichert
+
+---
+
 ## Aktueller Stand – v0.3 (Video MVP)
 
 ### Fixationsstabilitäts-Test (Video-basiert)
