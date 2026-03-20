@@ -6,14 +6,46 @@ Vorbereitet für Erweiterungen: Head-Stability (Phase 2), Blink-Detection (Phase
 
 from __future__ import annotations
 
+import logging
 import numpy as np
 import cv2
-import mediapipe as mp
 
-# MediaPipe-Module
-_mp_face_mesh = mp.solutions.face_mesh
-_mp_drawing = mp.solutions.drawing_utils
-_mp_drawing_styles = mp.solutions.drawing_styles
+logger = logging.getLogger(__name__)
+
+# Defensive MediaPipe-Initialisierung – mp.solutions ist auf manchen Plattformen
+# (z. B. Streamlit Cloud / Linux ARM) nach dem Import noch nicht verfügbar.
+try:
+    import mediapipe as mp  # type: ignore
+
+    logger.debug("mediapipe importiert: repr=%s, __file__=%s", repr(mp), getattr(mp, "__file__", "?"))
+
+    _mp_face_mesh = mp.solutions.face_mesh
+    _mp_drawing = mp.solutions.drawing_utils
+    _mp_drawing_styles = mp.solutions.drawing_styles
+
+    _MEDIAPIPE_AVAILABLE = True
+    logger.debug("mp.solutions erfolgreich geladen (face_mesh, drawing_utils, drawing_styles)")
+
+except Exception as _mp_init_error:  # noqa: BLE001
+    _mp_face_mesh = None  # type: ignore[assignment]
+    _mp_drawing = None  # type: ignore[assignment]
+    _mp_drawing_styles = None  # type: ignore[assignment]
+    _MEDIAPIPE_AVAILABLE = False
+    logger.warning(
+        "MediaPipe konnte nicht initialisiert werden – FaceMesh nicht verfügbar. "
+        "Fehler: %s",
+        _mp_init_error,
+    )
+
+
+def _require_mediapipe() -> None:
+    """Wirft einen klaren RuntimeError wenn MediaPipe nicht verfügbar ist."""
+    if not _MEDIAPIPE_AVAILABLE:
+        raise RuntimeError(
+            "MediaPipe ist auf dieser Plattform nicht verfügbar. "
+            "mp.solutions konnte nicht geladen werden. "
+            "Prüfe die Deployment-Logs auf den genauen Initialisierungsfehler."
+        )
 
 
 def init_face_mesh(
@@ -21,7 +53,7 @@ def init_face_mesh(
     max_num_faces: int = 1,
     refine_landmarks: bool = True,
     min_detection_confidence: float = 0.5,
-) -> mp.solutions.face_mesh.FaceMesh:
+) -> object:
     """Initialisiert ein MediaPipe FaceMesh-Objekt.
 
     Args:
@@ -33,6 +65,7 @@ def init_face_mesh(
     Returns:
         Konfiguriertes FaceMesh-Objekt.
     """
+    _require_mediapipe()
     return _mp_face_mesh.FaceMesh(
         static_image_mode=static_image_mode,
         max_num_faces=max_num_faces,
@@ -43,7 +76,7 @@ def init_face_mesh(
 
 def detect_face_landmarks(
     image_bgr: np.ndarray,
-    face_mesh: mp.solutions.face_mesh.FaceMesh | None = None,
+    face_mesh: object | None = None,
 ) -> dict:
     """Erkennt Gesichts-Landmarks in einem BGR-Bild.
 
@@ -118,6 +151,7 @@ def draw_face_landmarks(
     Returns:
         Annotiertes BGR-Bild als neue numpy-Array-Kopie.
     """
+    _require_mediapipe()
     annotated = image_bgr.copy()
 
     if not landmarks_result["face_detected"]:
