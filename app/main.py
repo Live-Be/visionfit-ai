@@ -1,5 +1,14 @@
 """VisionFit AI – Haupt-Streamlit-Applikation (v0.4 Optiker-Workflow)."""
 
+from pathlib import Path
+import sys
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR)
+)
+
+
 import streamlit as st
 
 from app.ui.components import show_disclaimer, show_score_card
@@ -9,6 +18,8 @@ from app.ui.forms import (
     render_binocular_form,
     get_refraction_values,
 )
+
+
 from app.tests.fixation_test import run_fixation_test
 from app.tests.reading_test import run_reading_test
 from app.storage.session_store import save_session
