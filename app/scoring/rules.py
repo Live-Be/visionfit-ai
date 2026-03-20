@@ -232,6 +232,82 @@ def score_fixation_combined(
     )
 
 
+def score_saccade_test(
+    accuracy_score: float,
+    latency_ms_mean: float | None,
+    correction_saccades_count: int,
+    quality_score: float,
+    is_reliable: bool,
+) -> ScoreResult:
+    """Bewertet den Sakkadentest anhand der berechneten Metriken.
+
+    Scoring-Gewichtung:
+        - Genauigkeit (accuracy_score):    40 %
+        - Reaktionszeit (latency_ms_mean): 35 %
+        - Korrekturbewegungen:             25 %
+
+    Bei nicht-zuverlässiger Analyse (is_reliable=False) wird der Score
+    proportional zum quality_score reduziert.
+
+    HINWEIS: Heuristische Formel, nicht klinisch validiert.
+
+    Args:
+        accuracy_score:           Erkennungsquote 0–100 (100 = alle Sakkaden erkannt).
+        latency_ms_mean:          Mittlere Latenz in ms oder None (kein Latenz-Input).
+        correction_saccades_count: Anzahl Korrektursakkaden insgesamt.
+        quality_score:            Datenqualität 0–100 (aus iris_detection_rate + Coverage).
+        is_reliable:              Ob die Auswertung als belastbar gilt.
+
+    Returns:
+        ScoreResult mit score (0–100), label und details.
+    """
+    # Genauigkeits-Beitrag (40 %)
+    acc_component = max(0.0, min(100.0, float(accuracy_score)))
+
+    # Latenz-Score (35 %): 150ms→100, 300ms→50, ≥500ms→0
+    if latency_ms_mean is None:
+        lat_component = 70.0  # Neutral wenn kein Latenz-Signal
+    else:
+        lat = float(latency_ms_mean)
+        if lat <= 150.0:
+            lat_component = 100.0
+        elif lat <= 500.0:
+            lat_component = max(0.0, 100.0 - (lat - 150.0) / 3.5)
+        else:
+            lat_component = 0.0
+
+    # Korrektur-Score (25 %): 0 Korrekturen→100, linear bis 10→0
+    corr_penalty = min(100.0, float(correction_saccades_count) * 10.0)
+    corr_component = max(0.0, 100.0 - corr_penalty)
+
+    # Kombinierter Score
+    combined = (
+        acc_component * 0.40
+        + lat_component * 0.35
+        + corr_component * 0.25
+    )
+
+    # Bei unzuverlässigen Daten proportional reduzieren
+    if not is_reliable:
+        quality_factor = max(0.0, min(1.0, float(quality_score) / 100.0))
+        combined = combined * quality_factor
+
+    score = round(min(100.0, max(0.0, combined)), 1)
+
+    return ScoreResult(
+        score=score,
+        label=_label_for_score(score),
+        details={
+            "accuracy_score": round(acc_component, 1),
+            "latency_ms_mean": round(latency_ms_mean, 1) if latency_ms_mean is not None else None,
+            "correction_saccades": correction_saccades_count,
+            "quality_score": round(quality_score, 1),
+            "is_reliable": is_reliable,
+            "gewichtung": "40% Genauigkeit + 35% Reaktionszeit + 25% Korrekturen",
+        },
+    )
+
+
 def score_reading_test(
     anstrengung: int,
     unschaerfe: int,
