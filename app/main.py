@@ -22,6 +22,7 @@ from app.ui.forms import (
 
 from app.tests.fixation_test import run_fixation_test
 from app.tests.reading_test import run_reading_test
+from app.tests.saccade_test import run_saccade_test
 from app.storage.session_store import save_session
 from app.utils.session import new_session_id, build_session_meta, current_timestamp
 from app.utils.config import APP_NAME
@@ -68,7 +69,7 @@ def _render_vsi_summary(vsi_score):
         st.info("Noch kein VisionFit Test durchgeführt (Tab 5).")
         return
     results = st.session_state.get("results", {})
-    label_map = {"fixation": "Fixationsstabilität", "reading": "Lese-Komfort"}
+    label_map = {"fixation": "Fixationsstabilität", "reading": "Lese-Komfort", "saccade": "Sakkadentest"}
     for key, result in results.items():
         show_score_card(
             label=label_map.get(key, key),
@@ -247,7 +248,11 @@ with tabs[4]:
 
     test_option = st.radio(
         "Test auswählen:",
-        options=["Fixationsstabilität (Kamera)", "Lese-Komfort (Selbstauskunft)"],
+        options=[
+            "Fixationsstabilität (Kamera)",
+            "Sakkadentest (Kamera)",
+            "Lese-Komfort (Selbstauskunft)",
+        ],
         horizontal=True,
         key="test_option_radio",
     )
@@ -258,6 +263,11 @@ with tabs[4]:
         result = run_fixation_test()
         if result is not None:
             st.session_state["results"]["fixation"] = result
+
+    elif test_option == "Sakkadentest (Kamera)":
+        result = run_saccade_test()
+        if result is not None:
+            st.session_state["results"]["saccade"] = result
 
     elif test_option == "Lese-Komfort (Selbstauskunft)":
         result = run_reading_test()
